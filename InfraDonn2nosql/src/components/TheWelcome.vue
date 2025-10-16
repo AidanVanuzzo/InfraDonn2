@@ -5,7 +5,7 @@ import ToolingIcon from './icons/IconTooling.vue'
 import EcosystemIcon from './icons/IconEcosystem.vue'
 import CommunityIcon from './icons/IconCommunity.vue'
 import SupportIcon from './icons/IconSupport.vue'
-import { onMounted, ref} from 'vue';
+import { onMounted, ref } from 'vue';
 import PouchDB from 'pouchdb'
 
 declare interface Post {
@@ -30,7 +30,7 @@ const postsData = ref<Post[]>([])
 // Initialisation de la base de données
 const initDatabase = () => {
   console.log('=> Connexion à la base de données');
-  const db = new PouchDB('http://admin:admin@localhost:5984/database')
+  const db = new PouchDB('http://aidan:nadia@localhost:5984/database')
   if (db) {
     console.log("Connecté à la collection : " + db?.name)
     storage.value = db
@@ -45,12 +45,62 @@ const fetchData = () => {
   // https://pouchdb.com/api.html#batch_fetch
   // Regarder l'exemple avec function allDocs
   // Remplir le tableau postsData avec les données récupérées
+  storage.value.allDocs({
+    include_docs: true,
+    attachments: true
+  }).then(function (result) {
+    // handle result
+    console.log(result)
+  }).catch(function (err) {
+    console.log(err);
+  });
+}
+
+const addDocument = () => {
+  storage.value.put({
+    _id: 'mydoc',
+    title: 'Heroes'
+  }).then(function (response) {
+    // handle response
+    console.log(response)
+  }).catch(function (err) {
+    console.log(err);
+  });
+}
+
+const updateDocument = () => {
+  storage.value.get('mydoc').then(function (doc) {
+    return storage.value.put({
+      _id: 'mydoc',
+      _rev: doc._rev,
+      title: "Let's Dance"
+    });
+  }).then(function (response) {
+    // handle response
+    console.log(response)
+  }).catch(function (err) {
+    console.log(err);
+  });
+}
+
+const deleteDocument = () => {
+  storage.value.get('mydoc').then(function (doc) {
+    return storage.value.remove(doc);
+  }).then(function (result) {
+    // handle result
+    console.log(result)
+  }).catch(function (err) {
+    console.log(err);
+  });
 }
 
 onMounted(() => {
   console.log('=> Composant initialisé');
   initDatabase()
   fetchData()
+  //addDocument()
+  //updateDocument()
+  //deleteDocument()
 });
 
 const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
