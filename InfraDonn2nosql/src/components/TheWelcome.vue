@@ -60,9 +60,7 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   <h1>Welcome</h1>
   <p>Counter: {{ counter }}</p>
   <button @click="increment">+1</button>
-</template>
 
-<template>
   <h1>Fetch Data</h1>
   <article v-for="post in postsData" v-bind:key="(post as any).id">
     <h2>{{ post.post_name }}</h2>
