@@ -54,7 +54,7 @@ const fetchData = () => {
     attachments: true
   }).then((result) => {
     // handle result
-    postsData.value = result.rows;
+    postsData.value = result.rows.map((row) => row.doc);
     console.log(result)
   }).catch(function (err) {
     console.log(err);
@@ -75,7 +75,16 @@ const addDocument = () => {
   });
 }
 
-const updateDocument = () => {
+const updateDocument = (post) => {
+
+  console.log(post)
+
+  const updatedPost = {...post, post_name : "laurent" }
+  console.log(updatedPost)
+
+  storage.value.put(updatedPost);
+
+  return;
   storage.value.get('mydoc').then(function (doc) {
     return storage.value.put({
       _id: 'mydoc',
@@ -91,9 +100,15 @@ const updateDocument = () => {
   });
 }
 
-const deleteDocument = () => {
-  storage.value.get('mydoc').then(function (doc) {
-    return storage.value.remove(doc);
+const deleteDocument = (post) => {
+
+  console.log(post)
+
+  storage.value.remove(post);
+
+  return;
+  storage.value.get(post).then(function (post) {
+    return storage.value.remove(post);
   }).then(function (result) {
     // handle result
     console.log(result);
@@ -120,12 +135,13 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   <input type="text" id="postName" name="postName" v-model="post_name" placeholder="post name" />
   <input type="text" id="postContent" name="postContent" v-model="post_content" placeholder="post content" />
   <button @click="addDocument()">Add Document</button>
-  <button @click="updateDocument()">Update Document</button>
-  <button @click="deleteDocument()">Delete Document</button>
   <h1>Fetch Data</h1>
   <article v-for="post in postsData" v-bind:key="(post as any).id">
     <h2>{{ post.post_name }}</h2>
     <p>{{ post.post_content }}</p>
+    <button @click="updateDocument(post)">Update Document</button>
+  <button @click="deleteDocument(post)">Delete Document</button>
+  
   </article>
 
   <p>Counter: {{ counter }}</p>
