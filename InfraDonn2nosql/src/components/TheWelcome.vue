@@ -17,6 +17,8 @@ declare interface Post {
 }
 
 const counter = ref(0);
+let post_name = ""
+let post_content = ""
 
 const increment = () => {
   counter.value++;
@@ -25,12 +27,14 @@ const increment = () => {
 // Référence à la base de données
 const storage = ref()
 // Données stockées
-const postsData = ref<Post[]>([])
+let postsData = ref<Post[]>([])
 
 // Initialisation de la base de données
 const initDatabase = () => {
   console.log('=> Connexion à la base de données');
-  const db = new PouchDB('http://aidan:nadia@localhost:5984/database')
+  //const db = new PouchDB('http://aidan:nadia@localhost:5984/database')
+  const db = new PouchDB('tuto')
+  PouchDB.replicate('http://aidan:nadia@localhost:5984/database','tuto')
   if (db) {
     console.log("Connecté à la collection : " + db?.name)
     storage.value = db
@@ -48,8 +52,9 @@ const fetchData = () => {
   storage.value.allDocs({
     include_docs: true,
     attachments: true
-  }).then(function (result) {
+  }).then((result) => {
     // handle result
+    postsData.value = result.rows;
     console.log(result)
   }).catch(function (err) {
     console.log(err);
@@ -57,12 +62,14 @@ const fetchData = () => {
 }
 
 const addDocument = () => {
-  storage.value.put({
-    _id: 'mydoc',
-    title: 'Heroes'
-  }).then(function (response) {
+  console.log(post_name)
+  storage.value.post({
+    post_name: post_name,
+    post_content: post_content
+  }).then((response) => {
     // handle response
-    console.log(response)
+    console.log(response);
+    fetchData();
   }).catch(function (err) {
     console.log(err);
   });
@@ -77,7 +84,8 @@ const updateDocument = () => {
     });
   }).then(function (response) {
     // handle response
-    console.log(response)
+    console.log(response);
+    fetchData();
   }).catch(function (err) {
     console.log(err);
   });
@@ -88,7 +96,8 @@ const deleteDocument = () => {
     return storage.value.remove(doc);
   }).then(function (result) {
     // handle result
-    console.log(result)
+    console.log(result);
+    fetchData();
   }).catch(function (err) {
     console.log(err);
   });
@@ -107,6 +116,12 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
 </script>
 
 <template>
+  <h1>Add Post</h1>
+  <input type="text" id="postName" name="postName" v-model="post_name" placeholder="post name" />
+  <input type="text" id="postContent" name="postContent" v-model="post_content" placeholder="post content" />
+  <button @click="addDocument()">Add Document</button>
+  <button @click="updateDocument()">Update Document</button>
+  <button @click="deleteDocument()">Delete Document</button>
   <h1>Fetch Data</h1>
   <article v-for="post in postsData" v-bind:key="(post as any).id">
     <h2>{{ post.post_name }}</h2>
@@ -115,4 +130,6 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
 
   <p>Counter: {{ counter }}</p>
   <button @click="increment">+1</button>
+  <p>{{ post_name }}</p>
+  <p>{{ post_content }}</p>
 </template>
