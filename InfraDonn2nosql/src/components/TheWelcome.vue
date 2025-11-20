@@ -16,6 +16,11 @@ declare interface Post {
   };
 }
 
+declare interface Comment {
+  comment_content: string;
+  post_id: string;
+}
+
 const counter = ref(0);
 let post_name = ""
 let post_content = ""
@@ -29,12 +34,24 @@ const storage = ref()
 // Données stockées
 let postsData = ref<Post[]>([])
 
+const createIndex = () => {
+storage.value.createIndex({
+  index: {
+    fields: ['Comment.post_id']
+  }
+}).then((response) => {
+  console.log(response);
+}).catch((err) => {
+  console.log(err);
+})
+}
+
 // Initialisation de la base de données
 const initDatabase = () => {
   console.log('=> Connexion à la base de données');
   //const db = new PouchDB('http://aidan:nadia@localhost:5984/database')
   const db = new PouchDB('tuto')
-  PouchDB.replicate('http://aidan:nadia@localhost:5984/database','tuto')
+  PouchDB.replicate('http://aidan:nadia@localhost:5984/database', 'tuto')
   if (db) {
     console.log("Connecté à la collection : " + db?.name)
     storage.value = db
@@ -69,20 +86,38 @@ const addDocument = () => {
   }).then((response) => {
     // handle response
     console.log(response);
+    //location.reload();
     fetchData();
-  }).catch(function (err) {
+    post_content = ""
+    post_name = ""
+  }).catch((err) => {
     console.log(err);
   });
 }
 
+let post_name_change = ""
+let post_content_change = ""
+
 const updateDocument = (post) => {
 
-  console.log(post)
+  console.log(post_name)
 
-  const updatedPost = {...post, post_name : "laurent" }
+  const updatedPost = {
+    ...post,
+    post_name: post_name_change,
+    post_content: post_content_change
+  }
   console.log(updatedPost)
 
-  storage.value.put(updatedPost);
+  storage.value.put(updatedPost).then((response) => {
+    console.log(response);
+    fetchData();
+    post_content_change = ""
+    post_name_change = ""
+    //location.reload();
+  }).catch((err) => {
+    console.log(err);
+  });
 
   return;
   storage.value.get('mydoc').then(function (doc) {
@@ -102,14 +137,19 @@ const updateDocument = (post) => {
 
 const deleteDocument = (post) => {
 
-  console.log(post)
+  console.log(post._id)
 
-  storage.value.remove(post);
-
+  storage.value.remove(post._id, post._rev).then((result) => {
+    console.log(result);
+    fetchData();
+    //location.reload();
+  }).catch((err) => {
+    console.log(err);
+  });
   return;
-  storage.value.get(post).then(function (post) {
-    return storage.value.remove(post);
-  }).then(function (result) {
+  storage.value.get('post').then(function (post) {
+    return storage.value.remove(post._id, post._rev);
+  }).then((result) => {
     // handle result
     console.log(result);
     fetchData();
@@ -137,15 +177,21 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   <button @click="addDocument()">Add Document</button>
   <h1>Fetch Data</h1>
   <article v-for="post in postsData" v-bind:key="(post as any).id">
-    <h2>{{ post.post_name }}</h2>
-    <p>{{ post.post_content }}</p>
+    <div>
+      <h2>{{ post.post_name }}</h2>
+      <p>{{ post.post_content }}</p>
+      <input type="text" id="postNameChange" name="postNameChange" v-model="post_name_change"
+        placeholder="change post name" />
+      <input type="text" id="postContentChange" name="postContentChange" v-model="post_content_change"
+        placeholder="change post content" />
+    </div>
     <button @click="updateDocument(post)">Update Document</button>
-  <button @click="deleteDocument(post)">Delete Document</button>
-  
+    <button @click="deleteDocument(post)">Delete Document</button>
   </article>
+  <h1>Replicate</h1>
+  <button @click="PouchDB.sync('tuto', 'http://aidan:nadia@localhost:5984/database')">Sync</button>
+  <button @click="createIndex()">Create Index</button>
 
   <p>Counter: {{ counter }}</p>
   <button @click="increment">+1</button>
-  <p>{{ post_name }}</p>
-  <p>{{ post_content }}</p>
 </template>
