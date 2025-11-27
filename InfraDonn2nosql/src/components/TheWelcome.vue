@@ -7,8 +7,11 @@ import CommunityIcon from './icons/IconCommunity.vue'
 import SupportIcon from './icons/IconSupport.vue'
 import { onMounted, ref } from 'vue';
 import PouchDB from 'pouchdb'
+import findPlugin from "pouchdb-find";
+PouchDB.plugin(findPlugin);
 
 declare interface Post {
+  _id?: string,
   post_name: string;
   post_content: string;
   attributes: {
@@ -19,11 +22,15 @@ declare interface Post {
 declare interface Comment {
   comment_content: string;
   post_id: string;
+  attributes: {
+    creation_date: any;
+  }
 }
 
 const counter = ref(0);
 let post_name = ""
 let post_content = ""
+let comment_content = ""
 
 const increment = () => {
   counter.value++;
@@ -33,17 +40,18 @@ const increment = () => {
 const storage = ref()
 // Données stockées
 let postsData = ref<Post[]>([])
+let commentsData = ref<Comment[]>([])
 
-const createIndex = () => {
-storage.value.createIndex({
-  index: {
-    fields: ['Comment.post_id']
-  }
-}).then((response) => {
-  console.log(response);
-}).catch((err) => {
-  console.log(err);
-})
+const dataCreateIndex = () => {
+  storage.value.createIndex({
+    index: {
+      fields: ['Comment.post_id']
+    }
+  }).then((response) => {
+    console.log(response);
+  }).catch((err) => {
+    console.log(err);
+  })
 }
 
 // Initialisation de la base de données
@@ -71,7 +79,13 @@ const fetchData = () => {
     attachments: true
   }).then((result) => {
     // handle result
-    postsData.value = result.rows.map((row) => row.doc);
+    // ici on recoit tout
+
+    // mettre uniquement post_content
+    postsData.value = result.rows.map((row) => row.doc).filter((doc) => !!doc.post_content);
+
+    // mettre uniquement comment_content
+    commentsData.value = result.rows.map((row) => row.doc).filter((doc) => !!doc.comment_content);;
     console.log(result)
   }).catch(function (err) {
     console.log(err);
@@ -93,6 +107,19 @@ const addDocument = () => {
   }).catch((err) => {
     console.log(err);
   });
+}
+
+const addComment = (post) => {
+  storage.value.post({
+    comment_content: comment_content,
+    post_id: post._id
+  }).then((response) => {
+    console.log(post._id);
+    fetchData();
+    comment_content = ""
+  }).catch((err) => {
+    console.log(err);
+  })
 }
 
 let post_name_change = ""
@@ -167,6 +194,12 @@ onMounted(() => {
   //deleteDocument()
 });
 
+const getComment = (postId) => {
+
+  // que les commentaires de commentDatas qui ont le post ID
+  return commentsData.value.filter((doc) => doc.post_id === postId);
+}
+
 const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
 </script>
 
@@ -175,23 +208,43 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   <input type="text" id="postName" name="postName" v-model="post_name" placeholder="post name" />
   <input type="text" id="postContent" name="postContent" v-model="post_content" placeholder="post content" />
   <button @click="addDocument()">Add Document</button>
-  <h1>Fetch Data</h1>
+  <h1>Posts</h1>
+
   <article v-for="post in postsData" v-bind:key="(post as any).id">
     <div>
+
       <h2>{{ post.post_name }}</h2>
-      <p>{{ post.post_content }}</p>
       <input type="text" id="postNameChange" name="postNameChange" v-model="post_name_change"
         placeholder="change post name" />
+      <button @click="updateDocument(post)">Update Post</button>
+
+      <p>{{ post.post_content }}</p>
       <input type="text" id="postContentChange" name="postContentChange" v-model="post_content_change"
         placeholder="change post content" />
+      <button @click="deleteDocument(post)">Delete Post</button>
+
+      <p></p>
+      <button @click="increment">Like</button>
+      <p>{{ counter }}</p>
+
+      <div>
+        <input type="text" id="commentContent" name="commentContent" v-model="comment_content" placeholder="comment" />
+        <button @click="addComment(post)">Comment Post</button>
+        <h3>Comments</h3>
+        <article v-for="comment in getComment(post._id)" v-bind:key="(comment as any).id">
+          <div>
+            <p>{{ comment.comment_content }}</p>
+          </div>
+          <p></p>
+
+        </article>
+      </div>
     </div>
-    <button @click="updateDocument(post)">Update Document</button>
-    <button @click="deleteDocument(post)">Delete Document</button>
   </article>
+
   <h1>Replicate</h1>
   <button @click="PouchDB.sync('tuto', 'http://aidan:nadia@localhost:5984/database')">Sync</button>
-  <button @click="createIndex()">Create Index</button>
+  <button @click="dataCreateIndex()">Create Index</button>
 
-  <p>Counter: {{ counter }}</p>
-  <button @click="increment">+1</button>
+
 </template>
