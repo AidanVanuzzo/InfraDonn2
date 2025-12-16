@@ -38,13 +38,14 @@ const increment = () => {
 }
 
 // Référence à la base de données
-const storage = ref()
+const storagePost = ref()
+const storageComment = ref()
 // Données stockées
 let postsData = ref<Post[]>([])
 let commentsData = ref<Comment[]>([])
 
 const dataCreateIndex = () => {
-  storage.value.createIndex({
+  storageComment.value.createIndex({
     index: {
       fields: ['Comment.post_id']
     }
@@ -59,13 +60,21 @@ const dataCreateIndex = () => {
 const initDatabase = () => {
   console.log('=> Connexion à la base de données');
   //const db = new PouchDB('http://aidan:nadia@localhost:5984/post')
-  const db = new PouchDB('post')
+  const dbPost = new PouchDB('post')
+  const dbComment = new PouchDB('comment')
   PouchDB.replicate('http://aidan:nadia@localhost:5984/post', 'post')
-  if (db) {
-    console.log("Connecté à la collection : " + db?.name)
-    storage.value = db
+  PouchDB.replicate('http://aidan:nadia@localhost:5984/comment', 'comment')
+  if (dbPost) {
+    console.log("Connecté à la collection : " + dbPost?.name)
+    storagePost.value = dbPost
   } else {
-    console.warn('Echec lors de la connexion à la base de données')
+    console.warn('Echec lors de la connexion à la base de données Post')
+  }
+  if (dbComment) {
+    console.log("Connecté à la collection : " + dbComment?.name)
+    storageComment.value = dbComment
+  } else {
+    console.warn('Echec lors de la connexion à la base de données Comment')
   }
 }
 
@@ -75,27 +84,29 @@ const fetchData = () => {
   // https://pouchdb.com/api.html#batch_fetch
   // Regarder l'exemple avec function allDocs
   // Remplir le tableau postsData avec les données récupérées
-  storage.value.allDocs({
+  storagePost.value.allDocs({
     include_docs: true,
     attachments: true
   }).then((result: { rows: any[] }) => {
-    // handle result
-    // ici on recoit tout
-
     // mettre uniquement post_content
     postsData.value = result.rows.map((row: { doc: any }) => row.doc).filter((doc: { post_content: any }) => !!doc.post_content);
-
-    // mettre uniquement comment_content
-    commentsData.value = result.rows.map((row: { doc: any }) => row.doc).filter((doc: { comment_content: any }) => !!doc.comment_content);;
-    //console.log(result)
   }).catch(function (err: any) {
     console.log(err);
   });
+
+  storageComment.value.allDocs({
+    include_docs: true,
+    attachments: true
+  }).then((result : {rows: any[]}) => {
+    commentsData.value = result.rows.map((row: { doc: any }) => row.doc).filter((doc: { comment_content: any }) => !!doc.comment_content);
+  }).catch((err: any) => {
+    console.log(err);
+  })
 }
 
 const addDocument = () => {
   console.log(post_name)
-  storage.value.post({
+  storagePost.value.post({
     post_name: post_name,
     post_content: post_content,
     post_like: 0
@@ -112,7 +123,7 @@ const addDocument = () => {
 }
 
 const addComment = (post: any) => {
-  storage.value.post({
+  storageComment.value.post({
     comment_content: comment_content,
     post_id: post._id
   }).then((response: any) => {
@@ -141,7 +152,7 @@ const addLike = (post: any) => {
 
 
 
-  storage.value.put(likedPost).then((response: any) => {
+  storagePost.value.put(likedPost).then((response: any) => {
     console.log(response);
     fetchData();
   }).catch((err: any) => {
@@ -149,13 +160,6 @@ const addLike = (post: any) => {
   })
 
   return;
-
-  storage.value.put(post.post_like++).then((response: any) => {
-    //console.log(post);
-    fetchData();
-  }).catch((err: any) => {
-    console.log(err);
-  })
 }
 
 let post_name_change = ""
@@ -172,7 +176,7 @@ const updateDocument = (post: any) => {
   }
   console.log(updatedPost)
 
-  storage.value.put(updatedPost).then((response: any) => {
+  storagePost.value.put(updatedPost).then((response: any) => {
     console.log(response);
     fetchData();
     post_content_change = ""
@@ -183,26 +187,13 @@ const updateDocument = (post: any) => {
   });
 
   return;
-  storage.value.get('mydoc').then(function (doc: { _rev: any }) {
-    return storage.value.put({
-      _id: 'mydoc',
-      _rev: doc._rev,
-      title: "Let's Dance"
-    });
-  }).then(function (response: any) {
-    // handle response
-    console.log(response);
-    fetchData();
-  }).catch(function (err: any) {
-    console.log(err);
-  });
 }
 
 const deleteDocument = (post: any) => {
 
   console.log(post._id)
 
-  storage.value.remove(post._id, post._rev).then((result: any) => {
+  storagePost.value.remove(post._id, post._rev).then((result: any) => {
     console.log(result);
     fetchData();
     //location.reload();
@@ -210,15 +201,6 @@ const deleteDocument = (post: any) => {
     console.log(err);
   });
   return;
-  storage.value.get('post').then(function (post: { _id: any; _rev: any }) {
-    return storage.value.remove(post._id, post._rev);
-  }).then((result: any) => {
-    // handle result
-    console.log(result);
-    fetchData();
-  }).catch(function (err: any) {
-    console.log(err);
-  });
 }
 
 onMounted(() => {
@@ -270,6 +252,9 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
         <article v-for="comment in getComment(post._id)" v-bind:key="(comment as any).id">
           <div>
             <p>{{ comment.comment_content }}</p>
+                  <p></p>
+      <button @click="addLike(comment)">Like</button>
+      <p>{{ post.post_like }}</p>
           </div>
           <p></p>
 
@@ -279,7 +264,8 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   </article>
 
   <h1>Replicate</h1>
-  <button @click="PouchDB.sync('tuto', 'http://aidan:nadia@localhost:5984/database')">Sync</button>
+  <button @click="PouchDB.sync('post', 'http://aidan:nadia@localhost:5984/post')">Sync posts</button>
+  <button @click="PouchDB.sync('comment', 'http://aidan:nadia@localhost:5984/comment')">Sync comments</button>
   <button @click="dataCreateIndex()">Create Index</button>
 
 
