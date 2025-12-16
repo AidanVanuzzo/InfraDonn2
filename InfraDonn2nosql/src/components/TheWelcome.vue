@@ -58,9 +58,9 @@ const dataCreateIndex = () => {
 // Initialisation de la base de données
 const initDatabase = () => {
   console.log('=> Connexion à la base de données');
-  //const db = new PouchDB('http://aidan:nadia@localhost:5984/database')
-  const db = new PouchDB('tuto')
-  PouchDB.replicate('http://aidan:nadia@localhost:5984/database', 'tuto')
+  //const db = new PouchDB('http://aidan:nadia@localhost:5984/post')
+  const db = new PouchDB('post')
+  PouchDB.replicate('http://aidan:nadia@localhost:5984/post', 'post')
   if (db) {
     console.log("Connecté à la collection : " + db?.name)
     storage.value = db
