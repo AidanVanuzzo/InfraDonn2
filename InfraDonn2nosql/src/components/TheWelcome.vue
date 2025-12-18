@@ -10,6 +10,7 @@ import PouchDB from 'pouchdb';
 import findPlugin from "pouchdb-find";
 PouchDB.plugin(findPlugin);
 
+//interfaces
 declare interface Post {
   _id?: string,
   post_name: string;
@@ -28,14 +29,14 @@ declare interface Comment {
   }
 }
 
-const counter = ref(0);
+//databases
+const post = 'http://aidan:nadia@localhost:5984/post_vanuzzo_aidan'
+const comment = 'http://aidan:nadia@localhost:5984/comment_vanuzzo_aidan'
+
+//
 let post_name = ""
 let post_content = ""
 let comment_content = ""
-
-const increment = () => {
-  counter.value++;
-}
 
 // Référence à la base de données
 const storagePost = ref()
@@ -62,8 +63,8 @@ const initDatabase = () => {
   //const db = new PouchDB('http://aidan:nadia@localhost:5984/post')
   const dbPost = new PouchDB('post')
   const dbComment = new PouchDB('comment')
-  PouchDB.replicate('http://aidan:nadia@localhost:5984/post', 'post')
-  PouchDB.replicate('http://aidan:nadia@localhost:5984/comment', 'comment')
+  PouchDB.replicate(post, 'post')
+  PouchDB.replicate(comment, 'comment')
   if (dbPost) {
     console.log("Connecté à la collection : " + dbPost?.name)
     storagePost.value = dbPost
@@ -97,7 +98,7 @@ const fetchData = () => {
   storageComment.value.allDocs({
     include_docs: true,
     attachments: true
-  }).then((result : {rows: any[]}) => {
+  }).then((result: { rows: any[] }) => {
     commentsData.value = result.rows.map((row: { doc: any }) => row.doc).filter((doc: { comment_content: any }) => !!doc.comment_content);
   }).catch((err: any) => {
     console.log(err);
@@ -150,8 +151,6 @@ const addLike = (post: any) => {
 
   console.log(likedPost)
 
-
-
   storagePost.value.put(likedPost).then((response: any) => {
     console.log(response);
     fetchData();
@@ -189,11 +188,49 @@ const updateDocument = (post: any) => {
   return;
 }
 
+let comment_content_change=""
+
+const updateComment = (comment: any) => {
+
+  console.log(comment.comment_content)
+
+  const updatedPost = {
+    ...comment,
+    comment_content: comment_content_change
+  }
+  console.log(updatedPost)
+
+  storageComment.value.put(updatedPost).then((response: any) => {
+    console.log(response);
+    fetchData();
+    comment_content_change = ""
+    //location.reload();
+  }).catch((err: any) => {
+    console.log(err);
+  });
+
+  return;
+}
+
 const deleteDocument = (post: any) => {
 
   console.log(post._id)
 
   storagePost.value.remove(post._id, post._rev).then((result: any) => {
+    console.log(result);
+    fetchData();
+    //location.reload();
+  }).catch((err: any) => {
+    console.log(err);
+  });
+  return;
+}
+
+const deleteComment = (comment: any) => {
+
+  console.log(comment._id)
+
+  storageComment.value.remove(comment._id, comment._rev).then((result: any) => {
     console.log(result);
     fetchData();
     //location.reload();
@@ -241,7 +278,7 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
         placeholder="change post content" />
       <button @click="deleteDocument(post)">Delete Post</button>
 
-      <p></p>
+      <hr></hr>
       <button @click="addLike(post)">Like</button>
       <p>{{ post.post_like }}</p>
 
@@ -252,9 +289,10 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
         <article v-for="comment in getComment(post._id)" v-bind:key="(comment as any).id">
           <div>
             <p>{{ comment.comment_content }}</p>
-                  <p></p>
-      <button @click="addLike(comment)">Like</button>
-      <p>{{ post.post_like }}</p>
+            <input type="text" id="commentContentChange" name="commentContentChange" v-model="comment_content_change"
+              placeholder="change comment content" />
+            <button @click="updateComment(comment)">Update Comment</button>
+            <button @click="deleteComment(comment)">Delete Comment</button>
           </div>
           <p></p>
 
@@ -264,8 +302,10 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   </article>
 
   <h1>Replicate</h1>
-  <button @click="PouchDB.sync('post', 'http://aidan:nadia@localhost:5984/post')">Sync posts</button>
-  <button @click="PouchDB.sync('comment', 'http://aidan:nadia@localhost:5984/comment')">Sync comments</button>
+  <button @click="() => {
+    PouchDB.sync('post', post)
+    PouchDB.sync('comment', comment)
+  }">Sync</button>
   <button @click="dataCreateIndex()">Create Index</button>
 
 
