@@ -33,11 +33,6 @@ declare interface Comment {
 const post = 'http://aidan:nadia@localhost:5984/post_vanuzzo_aidan'
 const comment = 'http://aidan:nadia@localhost:5984/comment_vanuzzo_aidan'
 
-//
-let post_name = ""
-let post_content = ""
-let comment_content = ""
-
 // Référence à la base de données
 const storagePost = ref()
 const storageComment = ref()
@@ -84,7 +79,7 @@ const fetchData = () => {
   // TODO Récupération des données
   // https://pouchdb.com/api.html#batch_fetch
   // Regarder l'exemple avec function allDocs
-  // Remplir le tableau postsData avec les données récupérées
+  // On rempli le tableau postsData avec les données récupérées
   storagePost.value.allDocs({
     include_docs: true,
     attachments: true
@@ -95,6 +90,7 @@ const fetchData = () => {
     console.log(err);
   });
 
+  // On rempli le tableau commentsData avec les données récupérées
   storageComment.value.allDocs({
     include_docs: true,
     attachments: true
@@ -105,37 +101,48 @@ const fetchData = () => {
   })
 }
 
-const addDocument = () => {
-  console.log(post_name)
-  storagePost.value.post({
-    post_name: post_name,
-    post_content: post_content,
-    post_like: 0
-  }).then((response: any) => {
-    // handle response
-    console.log(response);
-    //location.reload();
-    fetchData();
-    post_content = ""
-    post_name = ""
-  }).catch((err: any) => {
-    console.log(err);
-  });
+//ajout d'un post
+let post_name = ""
+let post_content = ""
+
+const addPost = () => {
+  if (post_name !== "" && post_content !== "") {
+    storagePost.value.post({
+      post_name: post_name,
+      post_content: post_content,
+      post_like: 0
+    }).then((response: any) => {
+      // handle response
+      console.log(response);
+      //location.reload();
+      fetchData();
+      post_content = ""
+      post_name = ""
+    }).catch((err: any) => {
+      console.log(err);
+    });
+  }
 }
+
+//ajout d'un commentaire
+let comment_content = ""
 
 const addComment = (post: any) => {
-  storageComment.value.post({
-    comment_content: comment_content,
-    post_id: post._id
-  }).then((response: any) => {
-    console.log(post._id);
-    fetchData();
-    comment_content = ""
-  }).catch((err: any) => {
-    console.log(err);
-  })
+  if (comment_content !== "") {
+    storageComment.value.post({
+      comment_content: comment_content,
+      post_id: post._id
+    }).then((response: any) => {
+      console.log(post._id);
+      fetchData();
+      comment_content = ""
+    }).catch((err: any) => {
+      console.log(err);
+    })
+  }
 }
 
+//ajout d'un like
 const addLike = (post: any) => {
 
   console.log(post.post_name)
@@ -161,12 +168,20 @@ const addLike = (post: any) => {
   return;
 }
 
+//modification d'un post
 let post_name_change = ""
 let post_content_change = ""
 
-const updateDocument = (post: any) => {
+const updatePost = (post: any) => {
 
   console.log(post.post_name)
+
+  if (post_name_change === "") {
+    post_name_change = post.post_name
+  }
+  if (post_content_change === "") {
+    post_content_change = post.post_content
+  }
 
   const updatedPost = {
     ...post,
@@ -188,11 +203,16 @@ const updateDocument = (post: any) => {
   return;
 }
 
-let comment_content_change=""
+//modification d'un commentaire
+let comment_content_change = ""
 
 const updateComment = (comment: any) => {
 
   console.log(comment.comment_content)
+
+  if (comment_content_change === "") {
+    comment_content_change = comment.comment_content
+  }
 
   const updatedPost = {
     ...comment,
@@ -212,7 +232,8 @@ const updateComment = (comment: any) => {
   return;
 }
 
-const deleteDocument = (post: any) => {
+//suppression d'un post
+const deletePost = (post: any) => {
 
   console.log(post._id)
 
@@ -226,6 +247,7 @@ const deleteDocument = (post: any) => {
   return;
 }
 
+//suppression d'un commentaire
 const deleteComment = (comment: any) => {
 
   console.log(comment._id)
@@ -240,6 +262,7 @@ const deleteComment = (comment: any) => {
   return;
 }
 
+//Initialisation de la page
 onMounted(() => {
   console.log('=> Composant initialisé');
   initDatabase()
@@ -249,6 +272,7 @@ onMounted(() => {
   //deleteDocument()
 });
 
+//Récupération des commentaires
 const getComment = (postId: any) => {
 
   // que les commentaires de commentDatas qui ont le post ID
@@ -256,13 +280,16 @@ const getComment = (postId: any) => {
 }
 
 const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
+
+//html
 </script>
 
 <template>
   <h1>Add Post</h1>
   <input type="text" id="postName" name="postName" v-model="post_name" placeholder="post name" />
   <input type="text" id="postContent" name="postContent" v-model="post_content" placeholder="post content" />
-  <button @click="addDocument()">Add Document</button>
+  <button @click="addPost()">Add Document</button>
+  <br><br>
   <h1>Posts</h1>
 
   <article v-for="post in postsData" v-bind:key="(post as any).id">
@@ -271,16 +298,16 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
       <h2>{{ post.post_name }}</h2>
       <input type="text" id="postNameChange" name="postNameChange" v-model="post_name_change"
         placeholder="change post name" />
-      <button @click="updateDocument(post)">Update Post</button>
+      <button @click="updatePost(post)">Update Post</button>
 
       <p>{{ post.post_content }}</p>
       <input type="text" id="postContentChange" name="postContentChange" v-model="post_content_change"
         placeholder="change post content" />
-      <button @click="deleteDocument(post)">Delete Post</button>
+      <button @click="deletePost(post)">Delete Post</button>
 
-      <hr></hr>
-      <button @click="addLike(post)">Like</button>
-      <p>{{ post.post_like }}</p>
+      <br>
+      <p>Likes</p>
+      <button @click="addLike(post)">{{ post.post_like }}</button>
 
       <div>
         <input type="text" id="commentContent" name="commentContent" v-model="comment_content" placeholder="comment" />
@@ -299,7 +326,10 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
         </article>
       </div>
     </div>
+    <hr>
   </article>
+
+  <br>
 
   <h1>Replicate</h1>
   <button @click="() => {
