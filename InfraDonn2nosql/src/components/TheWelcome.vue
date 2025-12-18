@@ -113,7 +113,8 @@ const addPost = () => {
       post_like: 0
     }).then((response: any) => {
       // handle response
-      console.log(response);
+      console.log("nom du post : " + post_name);
+      console.log("contenu du post : " + post_content)
       //location.reload();
       fetchData();
       post_content = ""
@@ -133,7 +134,7 @@ const addComment = (post: any) => {
       comment_content: comment_content,
       post_id: post._id
     }).then((response: any) => {
-      console.log(post._id);
+      console.log("contenu du commentaire : " + comment_content);
       fetchData();
       comment_content = ""
     }).catch((err: any) => {
@@ -145,8 +146,6 @@ const addComment = (post: any) => {
 //ajout d'un like
 const addLike = (post: any) => {
 
-  console.log(post.post_name)
-
   let post_like = post.post_like;
 
   post_like++
@@ -156,10 +155,8 @@ const addLike = (post: any) => {
     post_like: post_like
   }
 
-  console.log(likedPost)
-
   storagePost.value.put(likedPost).then((response: any) => {
-    console.log(response);
+    console.log("+1");
     fetchData();
   }).catch((err: any) => {
     console.log(err);
@@ -174,8 +171,6 @@ let post_content_change = ""
 
 const updatePost = (post: any) => {
 
-  console.log(post.post_name)
-
   if (post_name_change === "") {
     post_name_change = post.post_name
   }
@@ -188,10 +183,10 @@ const updatePost = (post: any) => {
     post_name: post_name_change,
     post_content: post_content_change
   }
-  console.log(updatedPost)
 
   storagePost.value.put(updatedPost).then((response: any) => {
-    console.log(response);
+    console.log("nom du post : " + post.post_name);
+    console.log("contenu du post : " + post.post_content);
     fetchData();
     post_content_change = ""
     post_name_change = ""
@@ -208,8 +203,6 @@ let comment_content_change = ""
 
 const updateComment = (comment: any) => {
 
-  console.log(comment.comment_content)
-
   if (comment_content_change === "") {
     comment_content_change = comment.comment_content
   }
@@ -218,10 +211,9 @@ const updateComment = (comment: any) => {
     ...comment,
     comment_content: comment_content_change
   }
-  console.log(updatedPost)
 
   storageComment.value.put(updatedPost).then((response: any) => {
-    console.log(response);
+    console.log("contenu du commentaire : " + comment.comment_content);
     fetchData();
     comment_content_change = ""
     //location.reload();
@@ -235,10 +227,8 @@ const updateComment = (comment: any) => {
 //suppression d'un post
 const deletePost = (post: any) => {
 
-  console.log(post._id)
-
   storagePost.value.remove(post._id, post._rev).then((result: any) => {
-    console.log(result);
+    console.log("suppression du post : "+ post.post_name);
     fetchData();
     //location.reload();
   }).catch((err: any) => {
@@ -250,10 +240,8 @@ const deletePost = (post: any) => {
 //suppression d'un commentaire
 const deleteComment = (comment: any) => {
 
-  console.log(comment._id)
-
   storageComment.value.remove(comment._id, comment._rev).then((result: any) => {
-    console.log(result);
+    console.log("suppression du commentaire : "+ comment.comment_content);
     fetchData();
     //location.reload();
   }).catch((err: any) => {
@@ -288,7 +276,7 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
   <h1>Add Post</h1>
   <input type="text" id="postName" name="postName" v-model="post_name" placeholder="post name" />
   <input type="text" id="postContent" name="postContent" v-model="post_content" placeholder="post content" />
-  <button @click="addPost()">Add Document</button>
+  <button @click="addPost()">Create Post</button>
   <br><br>
   <h1>Posts</h1>
 
